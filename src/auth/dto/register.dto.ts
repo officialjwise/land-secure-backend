@@ -1,31 +1,34 @@
-import { IsEmail, IsString, IsEnum, IsOptional, IsPhoneNumber, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsEnum, Matches, IsDateString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 enum Role {
-  SuperAdmin = 'super_admin',
-  Buyer = 'buyer',
-  Seller = 'seller',
+  BUYER = 'buyer',
+  SELLER = 'seller',
 }
 
 export class RegisterDto {
-  @IsEmail({}, { message: 'Invalid email format' })
+  @IsEmail()
   email: string;
 
-  @IsString({ message: 'Password must be a string' })
+  @IsString()
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,128}$/, {
+    message: 'Password must be 8-128 characters long and contain letters, numbers, and special characters',
+  })
   password: string;
 
-  @IsString({ message: 'First name is required' })
+  @IsString()
   firstName: string;
 
-  @IsString({ message: 'Last name is required' })
+  @IsString()
   lastName: string;
 
-  @IsPhoneNumber('GH', { message: 'Invalid Ghana phone number' })
+  @IsString()
+  @Matches(/^\+233\d{9}$/, { message: 'Phone must be a valid Ghanaian number starting with +233' })
   phone: string;
 
-  @IsEnum(Role, { message: 'Invalid role' })
-  role: Role;
+  @IsEnum(Role)
+  role: string;
 
-  // Ghana Card details for sellers (optional, validated on role)
   @IsString()
   @IsOptional()
   surname?: string;
@@ -38,23 +41,23 @@ export class RegisterDto {
   @IsOptional()
   nationality?: string;
 
-  @IsDateString()
   @IsOptional()
+  @IsDateString({}, { message: 'Date of birth must be a valid ISO date (e.g., YYYY-MM-DD)' })
   dateOfBirth?: string;
 
   @IsString()
   @IsOptional()
   ghanaCardNumber?: string;
 
-  @IsString()
   @IsOptional()
-  selfieImage?: string; // Base64 or URL
+  @Type(() => Buffer)
+  selfieImage?: Buffer;
 
-  @IsString()
   @IsOptional()
-  ghanaCardFrontImage?: string; // Base64 or URL
+  @Type(() => Buffer)
+  ghanaCardFrontImage?: Buffer;
 
-  @IsString()
   @IsOptional()
-  ghanaCardBackImage?: string; // Base64 or URL
+  @Type(() => Buffer)
+  ghanaCardBackImage?: Buffer;
 }

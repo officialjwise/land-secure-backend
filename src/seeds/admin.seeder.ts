@@ -22,7 +22,7 @@ async function seedAdmin() {
       password,
       first_name: 'Admin',
       last_name: 'User',
-      phone: '+233123456789',
+      phone: '+233504776487',
       role: 'super_admin',
       is_active: true,
     });

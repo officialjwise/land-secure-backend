@@ -7,4 +7,10 @@ export const Messages = {
   EMAIL_SENT: { statusCode: 200, message: 'EMAIL_SENT' },
   SERVER_ERROR: { statusCode: 500, message: 'SERVER_ERROR' },
   ADMIN_APPROVAL_PENDING: { statusCode: 403, message: 'ADMIN_APPROVAL_PENDING' },
+  OTP_SENT: { statusCode: 200, message: 'OTP_SENT' }, 
+  PASSWORD_RESET_SUCCESS: { statusCode: 200, message: 'PASSWORD_RESET_SUCCESS' },
+  PASSWORD_RESET_FAILED: { statusCode: 400, message: 'PASSWORD_RESET_FAILED' },
+  LOGOUT_SUCCESS: { statusCode: 200, message: 'LOGOUT_SUCCESS' },
+  VERIFICATION_EMAIL_RESENT: { statusCode: 200, message: 'VERIFICATION_EMAIL_RESENT' },
+
 };
