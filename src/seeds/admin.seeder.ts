@@ -1,39 +1,62 @@
+// src/seeds/admin.seeder.ts
 import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
+
+// Load environment variables with explicit path and debug
+const envResult = dotenv.config();
+if (envResult.error) {
+  console.error('Error loading .env file:', envResult.error);
+  process.exit(1);
+}
+console.log('Loaded environment variables:', process.env);
+
+// Validate required variables
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function seedAdmin() {
-  const supabaseUrl = process.env.SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const password = await bcrypt.hash('Amoako@21', 10);
+  const timestamp = new Date().toISOString();
+  try {
+    const email = 'admin@landsecure.com';
+    const password = await bcrypt.hash('AdminPass123!', 10);
+    const id = randomUUID();
+    const resetToken = randomUUID();
+    const resetExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  const { data: existingAdmin } = await supabase
-    .from('users')
-    .select('email')
-    .eq('email', 'admin@landsecure.com')
-    .single();
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        id, // Include generated ID
+        email,
+        password,
+        first_name: 'Admin',
+        last_name: 'User',
+        phone: '+233000000000',
+        role: 'admin',
+        is_active: true,
+        reset_token: resetToken,
+        reset_expires_at: resetExpiresAt,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .select()
+      .single();
 
-  if (!existingAdmin) {
-    const { error } = await supabase.from('users').insert({
-      email: 'admin@landsecure.com',
-      password,
-      first_name: 'Admin',
-      last_name: 'User',
-      phone: '+233504776487',
-      role: 'super_admin',
-      is_active: true,
-    });
-    if (error) {
-      console.error('Admin seeder error:', error.message);
-    } else {
-      console.log('Admin user seeded successfully');
-    }
-  } else {
-    console.log('Admin user already exists');
+    if (error) throw error;
+    console.log(`[${timestamp}] Seeded admin user ${email} with ID ${data.id}`);
+  } catch (error) {
+    console.error(`[${timestamp}] Error seeding admin:`, error);
+    process.exit(1);
   }
 }
 
-seedAdmin().catch(console.error);
+seedAdmin();
