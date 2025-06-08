@@ -1,98 +1,160 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Land Secure Backend 🏢🔒
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Overview
+Land Secure is a robust backend application built with NestJS, designed to power a real estate platform that facilitates property management, virtual tours, geographic information system (GIS) integration, user notifications, and caching. The platform connects buyers, sellers, and administrators in a secure, scalable environment, leveraging Supabase for database management and Redis for performance optimization.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Project Scope
+- **Authentication** 🔐: Handles user registration, login, password reset, and JWT-based authentication with role-based access control (RBAC) for admin, seller, and buyer roles.
+- **Users** 👥: Manages user profiles, including seller document verification (e.g., Ghana Card, selfie), soft deletion, and admin-controlled user management.
+- **Properties** 🏘️: Manages property listings with CRUD operations, image uploads, and ownership tracking.
+- **Tours** 🔎: Facilitates virtual property tours with scheduling, joining, and GIS-enhanced location data.
+- **GIS** 🌍: Provides geospatial functionality for property location mapping and proximity searches.
+- **Notifications** 📧: Sends email or in-app notifications for account updates, tour schedules, and property status changes.
+- **Redis** ⚡: Implements caching for user sessions and property data to improve performance.
 
-## Description
+## Objectives
+- Enable secure user management with role-specific permissions ✅
+- Support a full property ecosystem for listings, tours, and ownership 🏠
+- Provide interactive virtual tours with geospatial integration 🗺️
+- Keep users informed via notifications 🔔
+- Optimize performance with Redis caching 🚀
+- Ensure scalability and data integrity with Supabase and RBAC 📊
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Current Status
+- **Completed** ✅: `auth` and `user` modules are fully functional, with endpoints for login, profile updates, and admin operations tested successfully. An admin user (`admin@landsecure.com`) and a seller (`myclean.app@gmail.com`) are seeded and activated.
+- **In Progress** ⏳: Development of `property`, `tour`, `gis`, `notification`, and `redis` modules is ongoing.
 
-## Project setup
+## Getting Started
 
-```bash
-$ yarn install
+### Prerequisites
+- Node.js (v18+ recommended) 📌
+- npm or yarn 📦
+- Supabase account and project setup 🗄️
+- Redis server (local or remote) 🔄
+- Gmail account for email notifications 📨
+
+### Installation
+1. **Clone the Repository** 📂
+  ```bash
+  git clone https://github.com/officialjwise/land-secure-backend.git
+  cd land-secure-backend
+  ```
+
+2. **Install Dependencies** 🔧
+  ```bash
+  npm install
+  ```
+
+3. **Configure Environment Variables** ⚙️
+  Create a `.env` file in the root directory with the following:
+  ```
+  SUPABASE_URL=https://<your-supabase-project>.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+  EMAIL_USER=<your-gmail-username>
+  EMAIL_PASS=<your-gmail-app-password>
+  JWT_SECRET=<your-jwt-secret>
+  PORT=3000
+  REDIS_URL=redis://localhost:6379
+  ```
+  - Obtain SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from your Supabase dashboard.
+  - Use an App Password for Gmail if 2FA is enabled.
+
+4. **Set Up Database** 🗃️
+  - Create users and roles tables in Supabase as per the schema in seeds/admin.seeder.ts.
+  - Run the admin seeder:
+  ```bash
+  npx ts-node src/seeds/admin.seeder.ts
+  ```
+
+5. **Run the Application** 🚀
+  ```bash
+  npm run start:dev
+  ```
+  The server will start on http://localhost:3000.
+
+## Project Structure 📁
+```
+src/
+  ├── auth/                  # Authentication module
+  │   ├── dto/              # DTOs for auth
+  │   ├── strategies/       # Passport strategies
+  │   ├── auth.controller.ts
+  │   ├── auth.module.ts
+  │   └── auth.service.ts
+  ├── common/               # Shared utilities
+  ├── gis/                  # Geospatial module (in progress)
+  ├── notification/         # Notification module (in progress)
+  ├── property/             # Property module (in progress)
+  │   ├── dto/             # DTOs for properties
+  │   ├── entities/        # Entities for properties
+  │   ├── property.controller.ts
+  │   ├── property.module.ts
+  │   └── property.service.ts
+  ├── redis/                # Redis caching module (in progress)
+  ├── seeds/                # Seeding scripts
+  ├── tour/                 # Tour module (in progress)
+  │   ├── dto/             # DTOs for tours
+  │   ├── entities/        # Entities for tours
+  │   ├── tour.controller.ts
+  │   ├── tour.module.ts
+  │   └── tour.service.ts
+  ├── user/                 # User module
+  │   ├── dto/             # DTOs for users
+  │   ├── entities/        # Entities for users
+  │   ├── roles.guard.ts   # RBAC guard
+  │   ├── user.controller.ts
+  │   ├── user.module.ts
+  │   └── user.service.ts
+  ├── app.controller.spec.ts
+  ├── app.controller.ts
+  ├── app.module.ts
+  ├── app.service.ts
+  └── main.ts
 ```
 
-## Compile and run the project
+## API Endpoints 🛣️
 
-```bash
-# development
-$ yarn run start
+### Authentication
+- POST `/auth/login`: Authenticate and get JWT token 🔑
+- POST `/auth/reset-password`: Reset password (via token) 🔄
 
-# watch mode
-$ yarn run start:dev
+### Users
+- GET `/users/me`: Retrieve current user profile 👤
+- PUT `/users/me`: Update current user profile (with optional documents for sellers) ✏️
+- GET `/users`: List all users (admin only) 📋
+- POST `/users`: Create a new user (admin only) ➕
+- PUT `/users/:id`: Update user (admin only) 🔄
+- DELETE `/users/:id`: Soft delete user (admin only) 🗑️
+- PUT `/users/roles/permissions`: Update role permissions (admin only) 🛡️
 
-# production mode
-$ yarn run start:prod
-```
+## Development Roadmap 🗺️
+1. **Property Module** 🏠: Implement CRUD for properties, image uploads, and ownership tracking.
+2. **Tour Module** 🔍: Add tour scheduling, joining, and GIS integration.
+3. **GIS Module** 🌐: Integrate location-based features (e.g., proximity search).
+4. **Notification Module** 📱: Enable email and in-app notifications.
+5. **Redis Module** ⚡: Configure caching for performance.
+6. **Testing** 🧪: Add unit and integration tests.
+7. **Deployment** 🚀: Set up CI/CD and hosting (e.g., Heroku, Vercel).
 
-## Run tests
+## Contributing 👥
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/new-feature`).
+3. Commit changes (`git commit -m 'Add new feature'`).
+4. Push to the branch (`git push origin feature/new-feature`).
+5. Open a Pull Request.
 
-```bash
-# unit tests
-$ yarn run test
+## License 📄
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-# e2e tests
-$ yarn run test:e2e
+## Contact 📞
+For support or contributions, contact the project maintainer at phill@example.com.
 
-# test coverage
-$ yarn run test:cov
-```
+## Acknowledgments 🙏
+- Built with NestJS 🔷
+- Database powered by Supabase 🗄️
+- Caching with Redis 🚀
+## Developed By
+This project is developed and maintained by Officialjwise.
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Contact 📞
+For support or contributions, contact the project maintainer at officialjwise20@gmail.com.
