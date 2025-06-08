@@ -147,7 +147,7 @@ src/
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Contact 📞
-For support or contributions, contact the project maintainer at phill@example.com.
+For support or contributions, contact the project maintainer at officialjwise20@gmail.com.
 
 ## Acknowledgments 🙏
 - Built with NestJS 🔷
