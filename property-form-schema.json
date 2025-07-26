@@ -1,0 +1,137 @@
+{
+  "propertyFormSchema": {
+    "common_fields": [
+      "title",
+      "type",
+      "price",
+      "sizeNumber",
+      "sizeUnit",
+      "description",
+      "features",
+      "address",
+      "coordinates",
+      "sector",
+      "block",
+      "ownerName",
+      "ownerContact",
+      "ownerEmail",
+      "governmentId",
+      "surveyDocuments"
+    ],
+    "conditional_fields": {
+      "land": {
+        "hide_fields": ["bedrooms", "bathrooms"],
+        "required_fields": ["title", "type", "price", "sizeNumber", "sizeUnit", "address", "coordinates", "ownerName", "ownerContact", "ownerEmail"],
+        "optional_fields": ["description", "features", "sector", "block", "governmentId", "surveyDocuments"],
+        "size_units": ["sqm", "acres", "hectares"],
+        "description_placeholder": "Describe the land features, soil type, accessibility, etc."
+      },
+      "house": {
+        "show_fields": ["bedrooms", "bathrooms"],
+        "required_fields": ["title", "type", "price", "sizeNumber", "sizeUnit", "address", "coordinates", "bedrooms", "bathrooms", "ownerName", "ownerContact", "ownerEmail"],
+        "optional_fields": ["description", "features", "sector", "block", "governmentId", "surveyDocuments"],
+        "size_units": ["sqft", "sqm"],
+        "description_placeholder": "Describe the house features, condition, year built, etc."
+      },
+      "apartment": {
+        "show_fields": ["bedrooms", "bathrooms"],
+        "required_fields": ["title", "type", "price", "sizeNumber", "sizeUnit", "address", "coordinates", "bedrooms", "bathrooms", "ownerName", "ownerContact", "ownerEmail"],
+        "optional_fields": ["description", "features", "sector", "block", "governmentId", "surveyDocuments"],
+        "size_units": ["sqft", "sqm"],
+        "description_placeholder": "Describe the apartment features, floor level, amenities, etc."
+      },
+      "commercial": {
+        "hide_fields": ["bedrooms", "bathrooms"],
+        "required_fields": ["title", "type", "price", "sizeNumber", "sizeUnit", "address", "coordinates", "ownerName", "ownerContact", "ownerEmail"],
+        "optional_fields": ["description", "features", "sector", "block", "governmentId", "surveyDocuments"],
+        "size_units": ["sqft", "sqm"],
+        "description_placeholder": "Describe the commercial space, intended use, zoning, etc."
+      }
+    },
+    "validation_rules": {
+      "title": {
+        "type": "string",
+        "min_length": 3,
+        "max_length": 200,
+        "required": true
+      },
+      "type": {
+        "type": "enum",
+        "options": ["land", "house", "apartment", "commercial"],
+        "required": true
+      },
+      "price": {
+        "type": "string",
+        "pattern": "^[0-9]+$",
+        "min_value": 1,
+        "required": true
+      },
+      "sizeNumber": {
+        "type": "string",
+        "pattern": "^[0-9]+(\\.\\d+)?$",
+        "min_value": 1,
+        "required": true
+      },
+      "sizeUnit": {
+        "type": "enum",
+        "options": ["sqft", "sqm", "acres", "hectares"],
+        "required": true
+      },
+      "bedrooms": {
+        "type": "integer",
+        "min_value": 1,
+        "max_value": 20,
+        "conditional": ["house", "apartment"]
+      },
+      "bathrooms": {
+        "type": "integer",
+        "min_value": 1,
+        "max_value": 20,
+        "conditional": ["house", "apartment"]
+      },
+      "ownerContact": {
+        "type": "string",
+        "pattern": "^\\+233\\d{9}$",
+        "required": true
+      },
+      "ownerEmail": {
+        "type": "email",
+        "required": true
+      },
+      "coordinates": {
+        "type": "string",
+        "pattern": "^-?\\d+\\.\\d+,-?\\d+\\.\\d+$",
+        "required": true,
+        "example": "5.6037,-0.1870"
+      }
+    },
+    "frontend_logic": {
+      "property_type_change": {
+        "land": {
+          "hide": ["bedrooms", "bathrooms"],
+          "show_size_units": ["sqm", "acres", "hectares"],
+          "default_size_unit": "acres"
+        },
+        "house": {
+          "show": ["bedrooms", "bathrooms"],
+          "show_size_units": ["sqft", "sqm"],
+          "default_size_unit": "sqft",
+          "default_bedrooms": 3,
+          "default_bathrooms": 2
+        },
+        "apartment": {
+          "show": ["bedrooms", "bathrooms"],
+          "show_size_units": ["sqft", "sqm"],
+          "default_size_unit": "sqft",
+          "default_bedrooms": 2,
+          "default_bathrooms": 1
+        },
+        "commercial": {
+          "hide": ["bedrooms", "bathrooms"],
+          "show_size_units": ["sqft", "sqm"],
+          "default_size_unit": "sqft"
+        }
+      }
+    }
+  }
+}

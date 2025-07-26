@@ -7,6 +7,7 @@ import { PropertyVerificationRequest } from './dto/property-verification-request
 import { TransferRequestDto } from './dto/transfer-request.dto';
 import { TransferVerificationRequest } from './dto/transfer-verification-request.dto';
 import { PropertyEntity } from './entities/property.entity';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class PropertyService {
@@ -23,28 +24,33 @@ export class PropertyService {
     const timestamp = new Date().toISOString();
     try {
       const user = await this.supabase.from('users').select('role').eq('id', userId).single();
-      if (user.data?.role !== 'seller') throw new UnauthorizedException('Only sellers can create properties');
+      if (user.data?.role !== 'seller' && user.data?.role !== 'admin') {
+        throw new UnauthorizedException('Only sellers and admins can create properties');
+      }
 
-      const size = `${createPropertyDto.sizeNumber} ${createPropertyDto.sizeUnit}`;
-      const documents = await this.uploadDocuments(createPropertyDto);
+      // Validate and clean property data based on type
+      const cleanedPropertyData = this.validateAndCleanPropertyData(createPropertyDto);
+
+      const size = `${cleanedPropertyData.sizeNumber} ${cleanedPropertyData.sizeUnit}`;
+      const documents = await this.uploadDocuments(cleanedPropertyData);
 
       const { data, error } = await this.supabase.from('properties').insert({
-        title: createPropertyDto.title,
-        type: createPropertyDto.type,
-        price: createPropertyDto.price,
+        title: cleanedPropertyData.title,
+        type: cleanedPropertyData.type,
+        price: cleanedPropertyData.price,
         size,
-        description: createPropertyDto.description,
-        features: createPropertyDto.features,
-        address: createPropertyDto.address,
-        coordinates: createPropertyDto.coordinates,
-        sector: createPropertyDto.sector,
-        block: createPropertyDto.block,
-        bedrooms: createPropertyDto.bedrooms,
-        bathrooms: createPropertyDto.bathrooms,
+        description: cleanedPropertyData.description,
+        features: cleanedPropertyData.features,
+        address: cleanedPropertyData.address,
+        coordinates: cleanedPropertyData.coordinates,
+        sector: cleanedPropertyData.sector,
+        block: cleanedPropertyData.block,
+        bedrooms: cleanedPropertyData.bedrooms,
+        bathrooms: cleanedPropertyData.bathrooms,
         owner_id: userId,
-        owner_name: createPropertyDto.ownerName,
-        owner_contact: createPropertyDto.ownerContact,
-        owner_email: createPropertyDto.ownerEmail,
+        owner_name: cleanedPropertyData.ownerName,
+        owner_contact: cleanedPropertyData.ownerContact,
+        owner_email: cleanedPropertyData.ownerEmail,
         status: 'pending',
         submitted_date: timestamp,
         last_updated: timestamp,
@@ -476,5 +482,67 @@ export class PropertyService {
       console.error(`[${timestamp}] Error retrieving property stats:`, error);
       throw new BadRequestException('Failed to retrieve property stats');
     }
+  }
+
+  private validateAndCleanPropertyData(propertyData: CreatePropertyDto): CreatePropertyDto {
+    const cleaned = { ...propertyData };
+    
+    // Validate size units for property type
+    const validSizeUnits = {
+      land: ['sqm', 'acres', 'hectares'],
+      house: ['sqft', 'sqm'],
+      apartment: ['sqft', 'sqm'],
+      commercial: ['sqft', 'sqm']
+    };
+
+    if (cleaned.type && validSizeUnits[cleaned.type]) {
+      if (!validSizeUnits[cleaned.type].includes(cleaned.sizeUnit)) {
+        throw new BadRequestException(
+          `Invalid size unit '${cleaned.sizeUnit}' for property type '${cleaned.type}'. ` +
+          `Valid units are: ${validSizeUnits[cleaned.type].join(', ')}`
+        );
+      }
+    }
+
+    // Clean inappropriate fields based on property type
+    if (cleaned.type === 'land' || cleaned.type === 'commercial') {
+      if (cleaned.bedrooms !== undefined && cleaned.bedrooms !== null) {
+        throw new BadRequestException(`Bedrooms field is not allowed for ${cleaned.type} properties`);
+      }
+      if (cleaned.bathrooms !== undefined && cleaned.bathrooms !== null) {
+        throw new BadRequestException(`Bathrooms field is not allowed for ${cleaned.type} properties`);
+      }
+      // Remove these fields entirely
+      delete cleaned.bedrooms;
+      delete cleaned.bathrooms;
+    }
+
+    // Validate required fields for houses and apartments
+    if (cleaned.type === 'house' || cleaned.type === 'apartment') {
+      if (!cleaned.bedrooms || cleaned.bedrooms < 1) {
+        throw new BadRequestException(`Bedrooms is required and must be at least 1 for ${cleaned.type} properties`);
+      }
+      if (!cleaned.bathrooms || cleaned.bathrooms < 1) {
+        throw new BadRequestException(`Bathrooms is required and must be at least 1 for ${cleaned.type} properties`);
+      }
+    }
+
+    // Validate coordinates format
+    if (cleaned.coordinates) {
+      const coordPattern = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/;
+      if (!coordPattern.test(cleaned.coordinates)) {
+        throw new BadRequestException('Coordinates must be in format "latitude,longitude" (e.g., "5.6037,-0.1870")');
+      }
+    }
+
+    // Validate price format (remove currency symbols if present)
+    if (cleaned.price) {
+      cleaned.price = cleaned.price.replace(/[$,\s]/g, '');
+      if (!/^\d+(\.\d+)?$/.test(cleaned.price)) {
+        throw new BadRequestException('Price must be a valid number');
+      }
+    }
+
+    return cleaned;
   }
 }

@@ -1,0 +1,143 @@
+{
+  "property_field_requirements": {
+    "land": {
+      "required_fields": [
+        "title", "type", "price", "sizeNumber", "sizeUnit", 
+        "address", "coordinates", "ownerName", "ownerContact", "ownerEmail"
+      ],
+      "recommended_fields": [
+        "description", "sector", "block"
+      ],
+      "forbidden_fields": [
+        "bedrooms", "bathrooms"
+      ],
+      "allowed_size_units": ["sqm", "acres", "hectares"],
+      "field_descriptions": {
+        "sector": "Land use classification (e.g., Agricultural, Residential, Commercial, Industrial)",
+        "block": "Plot or block identification within a development",
+        "description": "Land characteristics, soil type, topography, access roads, utilities"
+      }
+    },
+    "house": {
+      "required_fields": [
+        "title", "type", "price", "sizeNumber", "sizeUnit", 
+        "address", "coordinates", "bedrooms", "bathrooms",
+        "ownerName", "ownerContact", "ownerEmail"
+      ],
+      "recommended_fields": [
+        "description", "features", "block"
+      ],
+      "optional_fields": [
+        "sector"
+      ],
+      "allowed_size_units": ["sqft", "sqm"],
+      "field_descriptions": {
+        "features": "House amenities (e.g., garage, garden, swimming pool, security)",
+        "block": "Subdivision or estate block identification",
+        "description": "House condition, year built, architectural style, renovations"
+      }
+    },
+    "apartment": {
+      "required_fields": [
+        "title", "type", "price", "sizeNumber", "sizeUnit", 
+        "address", "coordinates", "bedrooms", "bathrooms",
+        "ownerName", "ownerContact", "ownerEmail"
+      ],
+      "recommended_fields": [
+        "description", "features", "block"
+      ],
+      "optional_fields": [
+        "sector"
+      ],
+      "allowed_size_units": ["sqft", "sqm"],
+      "field_descriptions": {
+        "features": "Apartment amenities (e.g., balcony, elevator, parking, gym)",
+        "block": "Building or complex identification",
+        "description": "Floor level, unit condition, building amenities, year built"
+      }
+    },
+    "commercial": {
+      "required_fields": [
+        "title", "type", "price", "sizeNumber", "sizeUnit", 
+        "address", "coordinates", "ownerName", "ownerContact", "ownerEmail"
+      ],
+      "recommended_fields": [
+        "description", "features", "sector"
+      ],
+      "optional_fields": [
+        "block"
+      ],
+      "forbidden_fields": [
+        "bedrooms", "bathrooms"
+      ],
+      "allowed_size_units": ["sqft", "sqm"],
+      "field_descriptions": {
+        "sector": "Commercial classification (e.g., Office, Retail, Industrial, Warehouse)",
+        "features": "Commercial amenities (e.g., parking, loading dock, HVAC, security)",
+        "description": "Business use, zoning information, accessibility, infrastructure"
+      }
+    }
+  },
+  "validation_rules": {
+    "price_format": {
+      "allowed": ["45000", "$45000", "45,000", "$45,000"],
+      "cleaned_to": "45000",
+      "description": "Currency symbols and commas are automatically removed"
+    },
+    "coordinates_format": {
+      "required_pattern": "latitude,longitude",
+      "examples": ["5.6037,-0.1870", "5.6037, -0.1870", "6.6885,-1.6244"],
+      "description": "Decimal degrees format, comma-separated"
+    },
+    "size_validation": {
+      "size_number": "Must be a positive number (can include decimals)",
+      "size_unit": "Must match property type requirements"
+    }
+  },
+  "frontend_form_behavior": {
+    "on_property_type_change": {
+      "land": {
+        "show_fields": ["title", "price", "sizeNumber", "sizeUnit", "description", "sector", "block", "address", "coordinates", "owner_info"],
+        "hide_fields": ["bedrooms", "bathrooms"],
+        "size_unit_options": ["sqm", "acres", "hectares"],
+        "placeholder_updates": {
+          "description": "Describe land features, soil type, water access, road connectivity...",
+          "sector": "e.g., Agricultural, Residential, Commercial",
+          "features": "Not applicable for land"
+        }
+      },
+      "house": {
+        "show_fields": ["title", "price", "sizeNumber", "sizeUnit", "description", "features", "bedrooms", "bathrooms", "block", "address", "coordinates", "owner_info"],
+        "hide_fields": [],
+        "size_unit_options": ["sqft", "sqm"],
+        "placeholder_updates": {
+          "description": "Describe house condition, year built, architectural style...",
+          "features": "e.g., Swimming pool, Garden, Garage, Security system",
+          "bedrooms": "Number of bedrooms",
+          "bathrooms": "Number of bathrooms"
+        }
+      },
+      "apartment": {
+        "show_fields": ["title", "price", "sizeNumber", "sizeUnit", "description", "features", "bedrooms", "bathrooms", "block", "address", "coordinates", "owner_info"],
+        "hide_fields": [],
+        "size_unit_options": ["sqft", "sqm"],
+        "placeholder_updates": {
+          "description": "Describe apartment condition, floor level, building amenities...",
+          "features": "e.g., Balcony, Elevator access, Parking space, Gym",
+          "bedrooms": "Number of bedrooms",
+          "bathrooms": "Number of bathrooms"
+        }
+      },
+      "commercial": {
+        "show_fields": ["title", "price", "sizeNumber", "sizeUnit", "description", "features", "sector", "address", "coordinates", "owner_info"],
+        "hide_fields": ["bedrooms", "bathrooms"],
+        "size_unit_options": ["sqft", "sqm"],
+        "placeholder_updates": {
+          "description": "Describe commercial space, zoning, accessibility...",
+          "features": "e.g., Parking spaces, Loading dock, HVAC, Security",
+          "sector": "e.g., Office, Retail, Industrial, Warehouse"
+        }
+      }
+    }
+  }
+}

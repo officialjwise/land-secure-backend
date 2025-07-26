@@ -1,5 +1,6 @@
-import { IsString, IsEnum, IsOptional, IsInt, IsPhoneNumber, IsEmail } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsInt, IsPhoneNumber, IsEmail, ValidateIf } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { IsConditionallyRequired, IsConditionallyForbidden, IsValidSizeUnit } from '../validators/conditional.validator';
 
 export class CreatePropertyDto {
   @IsString()
@@ -15,6 +16,7 @@ export class CreatePropertyDto {
   sizeNumber: string;
 
   @IsEnum(['sqft', 'sqm', 'acres', 'hectares'])
+  @IsValidSizeUnit({ message: 'Invalid size unit for the selected property type' })
   sizeUnit: 'sqft' | 'sqm' | 'acres' | 'hectares';
 
   @IsString()
@@ -42,11 +44,27 @@ export class CreatePropertyDto {
   @IsInt()
   @IsOptional()
   @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @IsConditionallyRequired(
+    (obj: CreatePropertyDto) => obj.type === 'house' || obj.type === 'apartment',
+    { message: 'Bedrooms is required for houses and apartments' }
+  )
+  @IsConditionallyForbidden(
+    (obj: CreatePropertyDto) => obj.type === 'land' || obj.type === 'commercial',
+    { message: 'Bedrooms is not allowed for land and commercial properties' }
+  )
   bedrooms?: number;
 
   @IsInt()
   @IsOptional()
   @Transform(({ value }) => (value ? parseInt(value, 10) : undefined))
+  @IsConditionallyRequired(
+    (obj: CreatePropertyDto) => obj.type === 'house' || obj.type === 'apartment',
+    { message: 'Bathrooms is required for houses and apartments' }
+  )
+  @IsConditionallyForbidden(
+    (obj: CreatePropertyDto) => obj.type === 'land' || obj.type === 'commercial',
+    { message: 'Bathrooms is not allowed for land and commercial properties' }
+  )
   bathrooms?: number;
 
   @IsString()

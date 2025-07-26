@@ -19,7 +19,13 @@ export class UsersController {
   async getMyProfile(@Res() res: Response) {
     const requestUser = res.locals.user;
     const profile = await this.usersService.getMyProfile(requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: profile });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: profile 
+    });
   }
 
   @Put('me')
@@ -55,7 +61,10 @@ export class UsersController {
       const result = await this.usersService.updateMyProfile(requestUser.userId, updateData);
       
       res.status(200).json({ 
-        statusCode: 200, 
+        status_code: 200, 
+        total: 1, 
+        page: null, 
+        limit: null, 
         data: result 
       });
     } catch (error) {
@@ -70,7 +79,13 @@ export class UsersController {
   async getAllUsers(@Query() filters: { search?: string; role?: string; status?: string }, @Query('page') page: number, @Query('limit') limit: number, @Res() res: Response) {
     const pagination = { page: +page || 1, limit: +limit || 10 };
     const users = await this.usersService.getAllUsers(filters, pagination);
-    res.status(200).json({ statusCode: 200, data: users });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: users.total || 0, 
+      page: users.page || pagination.page, 
+      limit: users.limit || pagination.limit, 
+      data: users.users || users 
+    });
   }
 
   @Get(':id')
@@ -78,7 +93,13 @@ export class UsersController {
   @Roles('admin')
   async getUserById(@Param('id') id: string, @Res() res: Response) {
     const user = await this.usersService.getUserById(id);
-    res.status(200).json({ statusCode: 200, data: user });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: user 
+    });
   }
 
   @Post()
@@ -87,7 +108,13 @@ export class UsersController {
   async createUser(@Body() userData: any, @Res() res: Response) {
     const requestUser = res.locals.user;
     const user = await this.usersService.createUser(userData, requestUser.userId);
-    res.status(201).json({ statusCode: 201, data: user });
+    res.status(201).json({ 
+      status_code: 201, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: user 
+    });
   }
 
   @Put(':id')
@@ -96,7 +123,13 @@ export class UsersController {
   async updateUser(@Param('id') id: string, @Body() userData: any, @Res() res: Response) {
     const requestUser = res.locals.user;
     const user = await this.usersService.updateUser(id, userData, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: user });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: user 
+    });
   }
 
   @Delete(':id')
@@ -105,7 +138,13 @@ export class UsersController {
   async deleteUser(@Param('id') id: string, @Res() res: Response) {
     const requestUser = res.locals.user;
     const result = await this.usersService.deleteUser(id, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: result });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: result 
+    });
   }
 
   @Put('roles/permissions')
@@ -114,6 +153,12 @@ export class UsersController {
   async updateRolePermissions(@Body() roleData: { role: string; permissions: string[] }, @Res() res: Response) {
     const requestUser = res.locals.user;
     const result = await this.usersService.updateRolePermissions(roleData, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: result });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: result 
+    });
   }
 }

@@ -20,7 +20,7 @@ export class PropertyController {
 
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('seller')
+  @Roles('seller', 'admin')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'governmentId', maxCount: 1 },
@@ -38,7 +38,13 @@ export class PropertyController {
       surveyDocuments: files.surveyDocuments?.[0]?.buffer,
     };
     const property = await this.propertyService.createProperty({ ...createPropertyDto, ...fileBuffers }, requestUser.userId);
-    res.status(201).json({ statusCode: 201, data: property });
+    res.status(201).json({ 
+      status_code: 201, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Get(':propertyId')
@@ -46,7 +52,13 @@ export class PropertyController {
   @Roles('seller', 'admin', 'buyer')
   async getPropertyById(@Param('propertyId') propertyId: string, @Res() res: Response) {
     const property = await this.propertyService.getPropertyById(propertyId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Put(':propertyId')
@@ -70,7 +82,13 @@ export class PropertyController {
       surveyDocuments: files.surveyDocuments?.[0]?.buffer,
     };
     const property = await this.propertyService.updateProperty(propertyId, { ...updatePropertyDto, ...fileBuffers }, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Delete(':propertyId')
@@ -79,7 +97,13 @@ export class PropertyController {
   async deleteProperty(@Param('propertyId') propertyId: string, @Res() res: Response) {
     const requestUser = res.locals.user;
     const result = await this.propertyService.deleteProperty(propertyId, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: result });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: result 
+    });
   }
 
   @Get()
@@ -87,7 +111,13 @@ export class PropertyController {
   @Roles('seller', 'admin', 'buyer')
   async getProperties(@Query() query: { search?: string; type?: string; status?: string; page?: number; limit?: number }, @Res() res: Response) {
     const properties = await this.propertyService.getProperties(query);
-    res.status(200).json({ statusCode: 200, data: properties });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: properties.total || 0, 
+      page: properties.page || query.page || 1, 
+      limit: properties.limit || query.limit || 10, 
+      data: properties.properties || properties 
+    });
   }
 
   @Get('verification')
@@ -95,7 +125,13 @@ export class PropertyController {
   @Roles('admin')
   async getVerificationProperties(@Query() query: { status: string; search?: string; type?: string; page?: number; limit?: number }, @Res() res: Response) {
     const properties = await this.propertyService.getVerificationProperties(query);
-    res.status(200).json({ statusCode: 200, data: properties });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: properties.total || 0, 
+      page: properties.page || query.page || 1, 
+      limit: properties.limit || query.limit || 10, 
+      data: properties.properties || properties 
+    });
   }
 
   @Put(':propertyId/approve')
@@ -104,7 +140,13 @@ export class PropertyController {
   async approveProperty(@Param('propertyId') propertyId: string, @Body() verificationRequest: PropertyVerificationRequest, @Res() res: Response) {
     const requestUser = res.locals.user;
     const property = await this.propertyService.verifyProperty(propertyId, verificationRequest, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Put(':propertyId/reject')
@@ -113,7 +155,13 @@ export class PropertyController {
   async rejectProperty(@Param('propertyId') propertyId: string, @Body() verificationRequest: PropertyVerificationRequest, @Res() res: Response) {
     const requestUser = res.locals.user;
     const property = await this.propertyService.verifyProperty(propertyId, verificationRequest, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Put(':propertyId/quick-approve')
@@ -122,7 +170,13 @@ export class PropertyController {
   async quickApproveProperty(@Param('propertyId') propertyId: string, @Res() res: Response) {
     const requestUser = res.locals.user;
     const property = await this.propertyService.quickApproveProperty(propertyId, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Put(':propertyId/quick-reject')
@@ -131,7 +185,13 @@ export class PropertyController {
   async quickRejectProperty(@Param('propertyId') propertyId: string, @Res() res: Response) {
     const requestUser = res.locals.user;
     const property = await this.propertyService.quickRejectProperty(propertyId, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Get(':propertyId/documents')
@@ -139,7 +199,13 @@ export class PropertyController {
   @Roles('admin', 'seller')
   async getPropertyDocuments(@Param('propertyId') propertyId: string, @Res() res: Response) {
     const documents = await this.propertyService.getPropertyDocuments(propertyId);
-    res.status(200).json({ statusCode: 200, data: documents });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: documents.length || 1, 
+      page: null, 
+      limit: null, 
+      data: documents 
+    });
   }
 
   @Get('stats')
@@ -147,7 +213,13 @@ export class PropertyController {
   @Roles('admin')
   async getPropertyStats(@Res() res: Response) {
     const stats = await this.propertyService.getPropertyStats();
-    res.status(200).json({ statusCode: 200, data: stats });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: stats 
+    });
   }
 
   @Post(':propertyId/transfer')
@@ -163,7 +235,13 @@ export class PropertyController {
     const requestUser = res.locals.user;
     const fileBuffers = { transferDocuments: files.transferDocuments?.[0]?.buffer };
     const property = await this.propertyService.requestPropertyTransfer(propertyId, { ...transferRequest, ...fileBuffers }, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Put(':propertyId/transfer/approve')
@@ -172,7 +250,13 @@ export class PropertyController {
   async approvePropertyTransfer(@Param('propertyId') propertyId: string, @Body() verificationRequest: TransferVerificationRequest, @Res() res: Response) {
     const requestUser = res.locals.user;
     const property = await this.propertyService.verifyPropertyTransfer(propertyId, verificationRequest, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 
   @Put(':propertyId/transfer/reject')
@@ -181,6 +265,12 @@ export class PropertyController {
   async rejectPropertyTransfer(@Param('propertyId') propertyId: string, @Body() verificationRequest: TransferVerificationRequest, @Res() res: Response) {
     const requestUser = res.locals.user;
     const property = await this.propertyService.verifyPropertyTransfer(propertyId, verificationRequest, requestUser.userId);
-    res.status(200).json({ statusCode: 200, data: property });
+    res.status(200).json({ 
+      status_code: 200, 
+      total: 1, 
+      page: null, 
+      limit: null, 
+      data: property 
+    });
   }
 }
