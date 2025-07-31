@@ -9,6 +9,7 @@ import { TourModule } from './tour/tour.module';
 import { GisModule } from './gis/gis.module';
 import { NotificationModule } from './notification/notification.module';
 import { RedisModule } from './redis/redis.module';
+import { VerificationModule } from './verification/verification.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RedisModule } from './redis/redis.module';
     TourModule,
     GisModule,
     NotificationModule,
+    VerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

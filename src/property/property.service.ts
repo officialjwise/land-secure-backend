@@ -545,4 +545,67 @@ export class PropertyService {
 
     return cleaned;
   }
+
+  async getPropertyVerificationSummary(propertyId: string): Promise<{
+    verification_count: number;
+    latest_verification?: any;
+    verification_scores: number[];
+    avg_verification_score: number;
+    risk_levels: { [key: string]: number };
+    buyer_interest_level: 'low' | 'medium' | 'high';
+  }> {
+    try {
+      // Get all verifications for this property
+      const { data: verifications, error } = await this.supabase
+        .from('verifications')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (!verifications || verifications.length === 0) {
+        return {
+          verification_count: 0,
+          verification_scores: [],
+          avg_verification_score: 0,
+          risk_levels: {},
+          buyer_interest_level: 'low'
+        };
+      }
+
+      const scores = verifications
+        .filter(v => v.verification_score !== null)
+        .map(v => v.verification_score);
+      
+      const avgScore = scores.length > 0 ? 
+        scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+
+      const riskCounts = verifications.reduce((acc, v) => {
+        acc[v.risk_level] = (acc[v.risk_level] || 0) + 1;
+        return acc;
+      }, {});
+
+      const interestLevel = verifications.length >= 5 ? 'high' : 
+                           verifications.length >= 2 ? 'medium' : 'low';
+
+      return {
+        verification_count: verifications.length,
+        latest_verification: verifications[0],
+        verification_scores: scores,
+        avg_verification_score: Math.round(avgScore),
+        risk_levels: riskCounts,
+        buyer_interest_level: interestLevel
+      };
+    } catch (error) {
+      console.error('Error getting property verification summary:', error);
+      return {
+        verification_count: 0,
+        verification_scores: [],
+        avg_verification_score: 0,
+        risk_levels: {},
+        buyer_interest_level: 'low'
+      };
+    }
+  }
 }

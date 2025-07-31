@@ -273,4 +273,39 @@ export class PropertyController {
       data: property 
     });
   }
+
+  @Get(':propertyId/verification-status')
+  async getPropertyVerificationStatus(@Param('propertyId') propertyId: string, @Res() res: Response) {
+    try {
+      const property = await this.propertyService.getPropertyById(propertyId);
+      const verificationSummary = await this.propertyService.getPropertyVerificationSummary(propertyId);
+      
+      res.status(200).json({
+        status_code: 200,
+        total: 1,
+        page: null,
+        limit: null,
+        data: {
+          property: {
+            id: property.id,
+            title: property.title,
+            coordinates: property.coordinates,
+            status: property.status
+          },
+          verification_summary: verificationSummary
+        }
+      });
+    } catch (error) {
+      res.status(400).json({
+        status_code: 400,
+        total: null,
+        page: null,
+        limit: null,
+        data: {
+          message: error.message,
+          error: 'Bad Request'
+        }
+      });
+    }
+  }
 }
