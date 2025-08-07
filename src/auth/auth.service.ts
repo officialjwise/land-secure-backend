@@ -1,6 +1,5 @@
 import { Inject, Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as IORedis from 'ioredis';
 import { createClient } from '@supabase/supabase-js';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
@@ -33,6 +32,10 @@ interface TempUserData {
   expiresAt: number;
 }
 
+// In-memory storage for temporary registration data and tokens
+const tempUserDataStore: Record<string, TempUserData> = {};
+const tokenEmailMap: Record<string, string> = {};
+
 @Injectable()
 export class AuthService {
   private supabase;
@@ -41,7 +44,6 @@ export class AuthService {
   constructor(
     private configService: ConfigService,
     private jwtService: JwtService,
-    @Inject('REDIS_CLIENT') private redisClient: IORedis.Redis,
   ) {
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL') || '',
@@ -130,30 +132,11 @@ export class AuthService {
       expiresAt: Date.now() + 10 * 60 * 1000,
     };
 
-    try {
-      // Store temporary data in Redis
-      await this.redisClient.set(
-        `verify:${email}`,
-        JSON.stringify(tempUserData),
-        'EX',
-        600, // 10 minutes in seconds
-      );
-      // Store token-to-email mapping
-      await this.redisClient.set(
-        `token:${verificationToken}`,
-        email,
-        'EX',
-        600,
-      );
-      console.log(`[${timestamp}] Stored temporary registration data for ${email} in Redis`);
-    } catch (error) {
-      console.error(`[${timestamp}] Error storing temp data for ${email} in Redis:`, error);
-      // Clean up uploaded images if Redis fails
-      if (role === 'seller') {
-        await this.cleanupTempImages(email);
-      }
-      throw new BadRequestException('Failed to save registration data');
-    }
+    // Store temporary data in in-memory object
+    tempUserDataStore[email] = tempUserData;
+    tokenEmailMap[verificationToken] = email;
+
+    console.log(`[${timestamp}] Stored temporary registration data for ${email} in memory`);
 
     // Send verification email
     try {
@@ -187,8 +170,8 @@ export class AuthService {
       console.log(`[${timestamp}] Verification email sent successfully to ${email}`);
     } catch (emailError) {
       console.error(`[${timestamp}] Failed to send verification email to ${email}:`, emailError);
-      await this.redisClient.del(`verify:${email}`);
-      await this.redisClient.del(`token:${verificationToken}`);
+      delete tempUserDataStore[email];
+      delete tokenEmailMap[verificationToken];
       if (role === 'seller') {
         await this.cleanupTempImages(email);
       }
@@ -212,28 +195,26 @@ export class AuthService {
     const trimmedToken = token.trim();
 
     // Get email from token mapping
-    const email = await this.redisClient.get(`token:${trimmedToken}`);
+    const email = tokenEmailMap[trimmedToken];
     if (!email) {
       console.error(`[${timestamp}] No email found for token ${trimmedToken}`);
       throw new BadRequestException('No registration found for this token. Please register again.');
     }
 
-    const tempData = await this.redisClient.get(`verify:${email}`);
+    const tempData = tempUserDataStore[email];
     if (!tempData) {
       console.error(`[${timestamp}] No temporary registration found for email ${email}`);
-      await this.redisClient.del(`token:${trimmedToken}`);
+      delete tokenEmailMap[trimmedToken];
       throw new BadRequestException('No registration found for this token. Please register again.');
     }
 
-    const tempUserData: TempUserData = JSON.parse(tempData);
-
     // Check expiration
     const now = Date.now();
-    if (tempUserData.expiresAt < now) {
+    if (tempData.expiresAt < now) {
       console.error(`[${timestamp}] Token expired for email ${email}`);
-      await this.redisClient.del(`verify:${email}`);
-      await this.redisClient.del(`token:${trimmedToken}`);
-      if (tempUserData.role === 'seller') {
+      delete tempUserDataStore[email];
+      delete tokenEmailMap[trimmedToken];
+      if (tempData.role === 'seller') {
         await this.cleanupTempImages(email);
       }
       throw new BadRequestException('Verification token has expired. Please register again.');
@@ -247,16 +228,16 @@ export class AuthService {
       .single();
 
     if (existingUser) {
-      await this.redisClient.del(`verify:${email}`);
-      await this.redisClient.del(`token:${trimmedToken}`);
-      if (tempUserData.role === 'seller') {
+      delete tempUserDataStore[email];
+      delete tokenEmailMap[trimmedToken];
+      if (tempData.role === 'seller') {
         await this.cleanupTempImages(email);
       }
       throw new BadRequestException('Email already registered. Please login instead.');
     }
 
     const userId = uuidv4();
-    const verificationPayload = { sub: userId, email: tempUserData.email, role: tempUserData.role };
+    const verificationPayload = { sub: userId, email: tempData.email, role: tempData.role };
     const accessToken = this.jwtService.sign(verificationPayload, {
       secret: this.configService.get('JWT_SECRET'),
       expiresIn: '1h',
@@ -269,48 +250,48 @@ export class AuthService {
     try {
       const { error: insertError } = await this.supabase.from('users').insert({
         id: userId,
-        email: tempUserData.email,
-        password: tempUserData.hashedPassword,
-        first_name: tempUserData.firstName,
-        last_name: tempUserData.lastName,
-        phone: tempUserData.phone,
-        role: tempUserData.role,
-        surname: tempUserData.role === 'seller' ? tempUserData.surname : null,
-        other_names: tempUserData.role === 'seller' ? tempUserData.otherNames : null,
-        nationality: tempUserData.role === 'seller' ? tempUserData.nationality : null,
-        date_of_birth: tempUserData.role === 'seller' ? tempUserData.dateOfBirth : null,
-        ghana_card_number: tempUserData.role === 'seller' ? tempUserData.ghanaCardNumber : null,
-        selfie_image: tempUserData.selfieImageUrl,
-        ghana_card_front_image: tempUserData.ghanaCardFrontImageUrl,
-        ghana_card_back_image: tempUserData.ghanaCardBackImageUrl,
-        is_active: tempUserData.role === 'seller' ? false : true,
+        email: tempData.email,
+        password: tempData.hashedPassword,
+        first_name: tempData.firstName,
+        last_name: tempData.lastName,
+        phone: tempData.phone,
+        role: tempData.role,
+        surname: tempData.role === 'seller' ? tempData.surname : null,
+        other_names: tempData.role === 'seller' ? tempData.otherNames : null,
+        nationality: tempData.role === 'seller' ? tempData.nationality : null,
+        date_of_birth: tempData.role === 'seller' ? tempData.dateOfBirth : null,
+        ghana_card_number: tempData.role === 'seller' ? tempData.ghanaCardNumber : null,
+        selfie_image: tempData.selfieImageUrl,
+        ghana_card_front_image: tempData.ghanaCardFrontImageUrl,
+        ghana_card_back_image: tempData.ghanaCardBackImageUrl,
+        is_active: tempData.role === 'seller' ? false : true,
         verification_token: null,
-        pending_verification: tempUserData.role === 'seller' ? true : false,
+        pending_verification: tempData.role === 'seller' ? true : false,
         created_at: new Date(),
         updated_at: new Date(),
       });
 
       if (insertError) {
-        console.error(`[${timestamp}] Error creating user for ${tempUserData.email}:`, insertError);
-        if (tempUserData.role === 'seller') {
+        console.error(`[${timestamp}] Error creating user for ${tempData.email}:`, insertError);
+        if (tempData.role === 'seller') {
           await this.cleanupTempImages(email);
         }
         throw new BadRequestException('Failed to create user account');
       }
 
-      await this.redisClient.del(`verify:${email}`);
-      await this.redisClient.del(`token:${trimmedToken}`);
-      console.log(`[${timestamp}] Email verified and user created successfully for ${tempUserData.email}`);
+      delete tempUserDataStore[email];
+      delete tokenEmailMap[trimmedToken];
+      console.log(`[${timestamp}] Email verified and user created successfully for ${tempData.email}`);
       ResponseHandler.success(res, Messages.EMAIL_VERIFIED, {
         message: 'Email verified successfully! Welcome to the platform.',
         user: {
           id: userId,
-          email: tempUserData.email,
-          firstName: tempUserData.firstName,
-          lastName: tempUserData.lastName,
-          role: tempUserData.role,
-          isActive: tempUserData.role === 'seller' ? false : true,
-          pendingVerification: tempUserData.role === 'seller' ? true : false,
+          email: tempData.email,
+          firstName: tempData.firstName,
+          lastName: tempData.lastName,
+          role: tempData.role,
+          isActive: tempData.role === 'seller' ? false : true,
+          pendingVerification: tempData.role === 'seller' ? true : false,
         },
         tokens: {
           access_token: accessToken,
@@ -320,8 +301,8 @@ export class AuthService {
         },
       });
     } catch (error) {
-      console.error(`[${timestamp}] Error during user creation for ${tempUserData.email}:`, error);
-      if (tempUserData.role === 'seller') {
+      console.error(`[${timestamp}] Error during user creation for ${tempData.email}:`, error);
+      if (tempData.role === 'seller') {
         await this.cleanupTempImages(email);
       }
       throw new BadRequestException('Failed to complete registration. Please try again.');
@@ -572,33 +553,22 @@ export class AuthService {
   async resendVerification(email: string, res: Response): Promise<void> {
     const timestamp = new Date().toISOString();
     try {
-      const tempData = await this.redisClient.get(`verify:${email}`);
+      const tempData = tempUserDataStore[email];
       if (!tempData) {
         throw new BadRequestException('No pending verification found for this email');
       }
-      const tempUser: TempUserData = JSON.parse(tempData);
 
       const newVerificationToken = uuidv4();
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
       const hashedOtp = await bcrypt.hash(newOtp, 10);
 
-      tempUser.verificationToken = newVerificationToken;
-      tempUser.hashedOtp = hashedOtp;
-      tempUser.expiresAt = Date.now() + 10 * 60 * 1000;
+      // Update temp user data
+      tempData.verificationToken = newVerificationToken;
+      tempData.hashedOtp = hashedOtp;
+      tempData.expiresAt = Date.now() + 10 * 60 * 1000;
 
-      await this.redisClient.set(
-        `verify:${email}`,
-        JSON.stringify(tempUser),
-        'EX',
-        600,
-      );
-
-      await this.redisClient.set(
-        `token:${newVerificationToken}`,
-        email,
-        'EX',
-        600,
-      );
+      // Update token mapping
+      tokenEmailMap[newVerificationToken] = email;
 
       await this.transporter.sendMail({
         from: this.configService.get('EMAIL_USER'),
@@ -607,7 +577,7 @@ export class AuthService {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Email Verification</h2>
-            <p>Hello ${tempUser.firstName} ${tempUser.lastName},</p>
+            <p>Hello ${tempData.firstName} ${tempData.lastName},</p>
             <p>Here's your new verification link:</p>
             <div style="text-align: center; margin: 30px 0;">
               <a href="http://localhost:3000/auth/verify-email?token=${newVerificationToken}" 

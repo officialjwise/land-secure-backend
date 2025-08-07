@@ -6,7 +6,6 @@ import { MulterModule } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
@@ -23,7 +22,6 @@ import { RedisModule } from '../redis/redis.module';
     MulterModule.register({
       storage: undefined, // Handled in controller/service
     }),
-    RedisModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

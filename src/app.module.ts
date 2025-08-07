@@ -8,7 +8,6 @@ import { PropertyModule } from './property/property.module';
 import { TourModule } from './tour/tour.module';
 import { GisModule } from './gis/gis.module';
 import { NotificationModule } from './notification/notification.module';
-import { RedisModule } from './redis/redis.module';
 import { VerificationModule } from './verification/verification.module';
 
 @Module({
@@ -17,7 +16,6 @@ import { VerificationModule } from './verification/verification.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    RedisModule,
     AuthModule,
     UserModule,
     PropertyModule,
