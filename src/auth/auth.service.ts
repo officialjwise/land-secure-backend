@@ -14,7 +14,6 @@ import { LoginDto } from './dto/login.dto';
 // Define the interface for temp user data
 interface TempUserData {
   email: string;
-  verificationToken: string;
   hashedOtp: string;
   hashedPassword: string;
   firstName: string;
@@ -77,7 +76,6 @@ export class AuthService {
       ghanaCardBackImage,
     } = registerDto;
 
-    const verificationToken = uuidv4();
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -114,7 +112,6 @@ export class AuthService {
 
     const tempUserData: TempUserData = {
       email,
-      verificationToken,
       hashedOtp,
       hashedPassword,
       firstName,
@@ -134,13 +131,11 @@ export class AuthService {
 
     // Store temporary data in in-memory object
     tempUserDataStore[email] = tempUserData;
-    tokenEmailMap[verificationToken] = email;
-
     console.log(`[${timestamp}] Stored temporary registration data for ${email} in memory`);
 
     // Send verification email
     try {
-      console.log(`[${timestamp}] Sending verification email to ${email} with token ${verificationToken}`);
+      console.log(`[${timestamp}] Sending verification email to ${email}`);
       await this.transporter.sendMail({
         from: this.configService.get('EMAIL_USER'),
         to: email,
@@ -149,20 +144,13 @@ export class AuthService {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Welcome! Please verify your email address</h2>
             <p>Hello ${firstName} ${lastName},</p>
-            <p>Thank you for registering. Please click the button below to verify your email address:</p>
+            <p>Thank you for registering. Please use the OTP code below to verify your email address:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="http://localhost:3000/auth/verify-email?token=${verificationToken}" 
-                 style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-                Verify Email Address
-              </a>
+              <span style="background-color: #007bff; color: white; padding: 12px 24px; border-radius: 4px; font-size: 1.5em; letter-spacing: 2px;">${otp}</span>
             </div>
-            <p>Or copy and paste this link in your browser:</p>
-            <p style="word-break: break-all; color: #666;">
-              http://localhost:3000/auth/verify-email?token=${verificationToken}
-            </p>
             <p><strong>Your OTP code: ${otp}</strong> (for future reference)</p>
             <p style="color: #666; font-size: 12px;">
-              This verification link will expire in 10 minutes. If you didn't request this, please ignore this email.
+              This OTP will expire in 10 minutes. If you didn't request this, please ignore this email.
             </p>
           </div>
         `,
@@ -171,7 +159,6 @@ export class AuthService {
     } catch (emailError) {
       console.error(`[${timestamp}] Failed to send verification email to ${email}:`, emailError);
       delete tempUserDataStore[email];
-      delete tokenEmailMap[verificationToken];
       if (role === 'seller') {
         await this.cleanupTempImages(email);
       }
@@ -184,40 +171,35 @@ export class AuthService {
     });
   }
 
-  async verifyEmail(token: string, res: Response): Promise<void> {
+  async verifyEmail(email: string, otp: string, res: Response): Promise<void> {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Attempting to verify email with token: ${token}`);
+    console.log(`[${timestamp}] Attempting to verify email for: ${email} with otp: ${otp}`);
 
-    if (!token || token.trim() === '') {
-      throw new BadRequestException('Verification token is required');
-    }
-
-    const trimmedToken = token.trim();
-
-    // Get email from token mapping
-    const email = tokenEmailMap[trimmedToken];
-    if (!email) {
-      console.error(`[${timestamp}] No email found for token ${trimmedToken}`);
-      throw new BadRequestException('No registration found for this token. Please register again.');
+    if (!email || !otp) {
+      throw new BadRequestException('Email and OTP are required');
     }
 
     const tempData = tempUserDataStore[email];
     if (!tempData) {
       console.error(`[${timestamp}] No temporary registration found for email ${email}`);
-      delete tokenEmailMap[trimmedToken];
-      throw new BadRequestException('No registration found for this token. Please register again.');
+      throw new BadRequestException('No registration found for this email. Please register again.');
     }
 
     // Check expiration
     const now = Date.now();
     if (tempData.expiresAt < now) {
-      console.error(`[${timestamp}] Token expired for email ${email}`);
+      console.error(`[${timestamp}] OTP expired for email ${email}`);
       delete tempUserDataStore[email];
-      delete tokenEmailMap[trimmedToken];
       if (tempData.role === 'seller') {
         await this.cleanupTempImages(email);
       }
-      throw new BadRequestException('Verification token has expired. Please register again.');
+      throw new BadRequestException('OTP has expired. Please register again.');
+    }
+
+    // Check OTP
+    const isOtpValid = await bcrypt.compare(otp, tempData.hashedOtp);
+    if (!isOtpValid) {
+      throw new BadRequestException('Invalid OTP');
     }
 
     // Check for existing user
@@ -229,7 +211,6 @@ export class AuthService {
 
     if (existingUser) {
       delete tempUserDataStore[email];
-      delete tokenEmailMap[trimmedToken];
       if (tempData.role === 'seller') {
         await this.cleanupTempImages(email);
       }
@@ -280,7 +261,6 @@ export class AuthService {
       }
 
       delete tempUserDataStore[email];
-      delete tokenEmailMap[trimmedToken];
       console.log(`[${timestamp}] Email verified and user created successfully for ${tempData.email}`);
       ResponseHandler.success(res, Messages.EMAIL_VERIFIED, {
         message: 'Email verified successfully! Welcome to the platform.',
@@ -558,17 +538,12 @@ export class AuthService {
         throw new BadRequestException('No pending verification found for this email');
       }
 
-      const newVerificationToken = uuidv4();
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
       const hashedOtp = await bcrypt.hash(newOtp, 10);
 
       // Update temp user data
-      tempData.verificationToken = newVerificationToken;
       tempData.hashedOtp = hashedOtp;
       tempData.expiresAt = Date.now() + 10 * 60 * 1000;
-
-      // Update token mapping
-      tokenEmailMap[newVerificationToken] = email;
 
       await this.transporter.sendMail({
         from: this.configService.get('EMAIL_USER'),
@@ -578,16 +553,12 @@ export class AuthService {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Email Verification</h2>
             <p>Hello ${tempData.firstName} ${tempData.lastName},</p>
-            <p>Here's your new verification link:</p>
+            <p>Here's your new OTP code:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="http://localhost:3000/auth/verify-email?token=${newVerificationToken}" 
-                 style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-                Verify Email Address
-              </a>
+              <span style="background-color: #007bff; color: white; padding: 12px 24px; border-radius: 4px; font-size: 1.5em; letter-spacing: 2px;">${newOtp}</span>
             </div>
-            <p><strong>Your new OTP code: ${newOtp}</strong></p>
             <p style="color: #666; font-size: 12px;">
-              This verification link will expire in 10 minutes.
+              This OTP will expire in 10 minutes.
             </p>
           </div>
         `,

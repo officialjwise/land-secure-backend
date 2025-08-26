@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, Res, UseInterceptors, UploadedFiles, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Res, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -31,9 +31,9 @@ export class AuthController {
     await this.authService.register(registerDto, res);
   }
 
-  @Get('verify-email')
-  async verifyEmail(@Query('token') token: string, @Res() res: Response): Promise<void> {
-    await this.authService.verifyEmail(token, res);
+  @Post('verify-email')
+  async verifyEmail(@Body('email') email: string, @Body('otp') otp: string, @Res() res: Response): Promise<void> {
+    await this.authService.verifyEmail(email, otp, res);
   }
 
   @Post('login')
