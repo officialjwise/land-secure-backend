@@ -179,6 +179,63 @@ export class AuthService {
       throw new BadRequestException('Email and OTP are required');
     }
 
+    // Check for existing user
+    const { data: existingUser, error: userError } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (existingUser && existingUser.role === 'admin') {
+      // Admin login OTP verification
+      const tempData = tempUserDataStore[email];
+      if (!tempData || !tempData.hashedOtp || !tempData.expiresAt) {
+        throw new UnauthorizedException('No OTP found. Please request a new login.');
+      }
+      if (tempData.expiresAt < Date.now()) {
+        delete tempUserDataStore[email];
+        throw new UnauthorizedException('OTP expired. Please request a new login.');
+      }
+      const isOtpValid = await bcrypt.compare(otp, tempData.hashedOtp);
+      if (!isOtpValid) {
+        throw new UnauthorizedException('Invalid OTP.');
+      }
+      delete tempUserDataStore[email];
+      // Return tokens and user info for admin
+      const payload = { sub: existingUser.id, email: existingUser.email, role: existingUser.role };
+      const accessToken = this.jwtService.sign(payload, {
+        secret: this.configService.get('JWT_SECRET'),
+        expiresIn: '1h',
+      });
+      const refreshToken = this.jwtService.sign(payload, {
+        secret: this.configService.get('REFRESH_TOKEN_SECRET'),
+        expiresIn: '7d',
+      });
+      await this.supabase
+        .from('users')
+        .update({ last_login_at: new Date(), updated_at: new Date() })
+        .eq('id', existingUser.id);
+      ResponseHandler.success(res, Messages.LOGIN_SUCCESS, {
+        message: 'Login successful',
+        user: {
+          id: existingUser.id,
+          email: existingUser.email,
+          firstName: existingUser.first_name,
+          lastName: existingUser.last_name,
+          role: existingUser.role,
+          isActive: existingUser.is_active,
+        },
+        tokens: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in_access: '1h',
+          expires_in_refresh: '7d',
+        },
+      });
+      return;
+    }
+
+    // Registration verification (existing logic)
     const tempData = tempUserDataStore[email];
     if (!tempData) {
       console.error(`[${timestamp}] No temporary registration found for email ${email}`);
@@ -203,13 +260,13 @@ export class AuthService {
     }
 
     // Check for existing user
-    const { data: existingUser, error: userError } = await this.supabase
+    const { data: existingUserAfterOtpCheck, error: userErrorAfterOtpCheck } = await this.supabase
       .from('users')
       .select('email')
       .eq('email', email)
       .single();
 
-    if (existingUser) {
+    if (existingUserAfterOtpCheck) {
       delete tempUserDataStore[email];
       if (tempData.role === 'seller') {
         await this.cleanupTempImages(email);
@@ -329,7 +386,7 @@ export class AuthService {
 
   async login(loginDto: LoginDto, res: Response): Promise<void> {
     const timestamp = new Date().toISOString();
-    const { email, password } = loginDto;
+    const { email, password, otp } = loginDto as any;
     try {
       const { data: user, error } = await this.supabase
         .from('users')
@@ -346,6 +403,75 @@ export class AuthService {
       if (!user.is_active) {
         throw new UnauthorizedException('Account is not active. Please contact support.');
       }
+
+      // If admin, require OTP verification
+      if (user.role === 'admin') {
+        if (!otp) {
+          // If OTP not provided, generate and send, but do not log in
+          const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+          const hashedOtp = await bcrypt.hash(generatedOtp, 10);
+          user.hashedOtp = hashedOtp;
+          user.otpExpiresAt = Date.now() + 10 * 60 * 1000;
+          tempUserDataStore[email] = {
+            ...tempUserDataStore[email],
+            email,
+            hashedOtp,
+            expiresAt: user.otpExpiresAt,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            phone: user.phone,
+            role: user.role,
+            surname: user.surname || null,
+            otherNames: user.other_names || null,
+            nationality: user.nationality || null,
+            dateOfBirth: user.date_of_birth || null,
+            ghanaCardNumber: user.ghana_card_number || null,
+            selfieImageUrl: user.selfie_image || null,
+            ghanaCardFrontImageUrl: user.ghana_card_front_image || null,
+            ghanaCardBackImageUrl: user.ghana_card_back_image || null,
+            hashedPassword: user.password,
+          };
+          await this.transporter.sendMail({
+            from: this.configService.get('EMAIL_USER'),
+            to: user.email,
+            subject: 'Admin Login OTP',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>Admin Login Verification</h2>
+                <p>Hello ${user.first_name} ${user.last_name},</p>
+                <p>Your OTP for admin login is:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <span style="background-color: #007bff; color: white; padding: 12px 24px; border-radius: 4px; font-size: 1.5em; letter-spacing: 2px;">${generatedOtp}</span>
+                </div>
+                <p>This OTP will expire in 10 minutes.</p>
+              </div>
+            `,
+          });
+          res.status(200).json({
+            statusCode: 200,
+            status: 'otp_sent',
+            message: 'OTP sent to admin email. Please verify with the OTP to complete login.',
+            email: user.email
+          });
+          return;
+        } else {
+          // OTP provided, verify
+          const tempData = tempUserDataStore[email];
+          if (!tempData || !tempData.hashedOtp || !tempData.expiresAt) {
+            throw new UnauthorizedException('No OTP found. Please request a new login.');
+          }
+          if (tempData.expiresAt < Date.now()) {
+            delete tempUserDataStore[email];
+            throw new UnauthorizedException('OTP expired. Please request a new login.');
+          }
+          const isOtpValid = await bcrypt.compare(otp, tempData.hashedOtp);
+          if (!isOtpValid) {
+            throw new UnauthorizedException('Invalid OTP.');
+          }
+          delete tempUserDataStore[email];
+        }
+      }
+
       const payload = { sub: user.id, email: user.email, role: user.role };
       const accessToken = this.jwtService.sign(payload, { secret: this.configService.get('JWT_SECRET'), expiresIn: '1h' });
       const refreshToken = this.jwtService.sign(payload, { secret: this.configService.get('REFRESH_TOKEN_SECRET'), expiresIn: '7d' });
