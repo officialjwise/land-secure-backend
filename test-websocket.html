@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .connecting { background: #fff3cd; color: #856404; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 WebSocket Connection Test</h1>
+        <p>This page tests the WebSocket connection to your chat server.</p>
+        
+        <div id="connectionStatus" class="status disconnected">
+            Status: Disconnected
+        </div>
+        
+        <div>
+            <button onclick="connect()" id="connectBtn">Connect to WebSocket</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div>
+            <input type="text" id="testMessage" placeholder="Test message" value="Hello WebSocket!">
+            <button onclick="sendTestMessage()" id="sendBtn" disabled>Send Test Message</button>
+        </div>
+        
+        <div>
+            <h3>Connection Log:</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        const logElement = document.getElementById('log');
+        const statusElement = document.getElementById('connectionStatus');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+
+        function updateStatus(status, className) {
+            statusElement.textContent = `Status: ${status}`;
+            statusElement.className = `status ${className}`;
+        }
+
+        function updateButtons(connected) {
+            connectBtn.disabled = connected;
+            disconnectBtn.disabled = !connected;
+            sendBtn.disabled = !connected;
+        }
+
+        function connect() {
+            log('Attempting to connect to WebSocket server...');
+            updateStatus('Connecting...', 'connecting');
+            
+            try {
+                // Connect to the WebSocket server
+                socket = io('http://localhost:3001/chat', {
+                    transports: ['websocket', 'polling'],
+                    auth: {
+                        token: 'test-token' // This will fail authentication, but we can test connection
+                    }
+                });
+
+                // Connection events
+                socket.on('connect', () => {
+                    log('✅ Connected to WebSocket server!');
+                    updateStatus('Connected', 'connected');
+                    updateButtons(true);
+                });
+
+                socket.on('disconnect', () => {
+                    log('❌ Disconnected from WebSocket server');
+                    updateStatus('Disconnected', 'disconnected');
+                    updateButtons(false);
+                });
+
+                socket.on('connect_error', (error) => {
+                    log(`❌ Connection error: ${error.message}`);
+                    updateStatus('Connection Error', 'disconnected');
+                    updateButtons(false);
+                });
+
+                // Test events
+                socket.on('error', (data) => {
+                    log(`⚠️ Server error: ${JSON.stringify(data)}`);
+                });
+
+                log('WebSocket connection attempt initiated...');
+                
+            } catch (error) {
+                log(`❌ Failed to create WebSocket connection: ${error.message}`);
+                updateStatus('Connection Failed', 'disconnected');
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                log('🔌 Manually disconnected');
+                updateStatus('Disconnected', 'disconnected');
+                updateButtons(false);
+            }
+        }
+
+        function sendTestMessage() {
+            if (socket && socket.connected) {
+                const message = document.getElementById('testMessage').value;
+                log(`📤 Sending test message: "${message}"`);
+                
+                // Try to send a test message
+                socket.emit('sendMessage', {
+                    chat_id: 'test-chat-id',
+                    content: message,
+                    message_type: 'text'
+                });
+                
+                log('Test message sent (will likely fail due to authentication)');
+            } else {
+                log('❌ Cannot send message: not connected');
+            }
+        }
+
+        // Auto-connect when page loads
+        window.addEventListener('load', () => {
+            log('Page loaded, ready to test WebSocket connection');
+            log('Click "Connect to WebSocket" to start testing');
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        });
+    </script>
+</body>
+</html>

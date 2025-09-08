@@ -25,17 +25,19 @@ export class PropertyController {
     FileFieldsInterceptor([
       { name: 'governmentId', maxCount: 1 },
       { name: 'surveyDocuments', maxCount: 1 },
+      { name: 'propertyImage', maxCount: 1 },
     ]),
   )
   async createProperty(
     @Body() createPropertyDto: CreatePropertyDto,
-    @UploadedFiles() files: { governmentId?: Express.Multer.File[]; surveyDocuments?: Express.Multer.File[] },
+    @UploadedFiles() files: { governmentId?: Express.Multer.File[]; surveyDocuments?: Express.Multer.File[]; propertyImage?: Express.Multer.File[] },
     @Res() res: Response,
   ) {
     const requestUser = res.locals.user;
     const fileBuffers = {
       governmentId: files.governmentId?.[0]?.buffer,
       surveyDocuments: files.surveyDocuments?.[0]?.buffer,
+      propertyImage: files.propertyImage?.[0]?.buffer,
     };
     const property = await this.propertyService.createProperty({ ...createPropertyDto, ...fileBuffers }, requestUser.userId);
     res.status(201).json({ 
@@ -68,18 +70,20 @@ export class PropertyController {
     FileFieldsInterceptor([
       { name: 'governmentId', maxCount: 1 },
       { name: 'surveyDocuments', maxCount: 1 },
+      { name: 'propertyImage', maxCount: 1 },
     ]),
   )
   async updateProperty(
     @Param('propertyId') propertyId: string,
     @Body() updatePropertyDto: UpdatePropertyDto,
-    @UploadedFiles() files: { governmentId?: Express.Multer.File[]; surveyDocuments?: Express.Multer.File[] },
+    @UploadedFiles() files: { governmentId?: Express.Multer.File[]; surveyDocuments?: Express.Multer.File[]; propertyImage?: Express.Multer.File[] },
     @Res() res: Response,
   ) {
     const requestUser = res.locals.user;
     const fileBuffers = {
       governmentId: files.governmentId?.[0]?.buffer,
       surveyDocuments: files.surveyDocuments?.[0]?.buffer,
+      propertyImage: files.propertyImage?.[0]?.buffer,
     };
     const property = await this.propertyService.updateProperty(propertyId, { ...updatePropertyDto, ...fileBuffers }, requestUser.userId);
     res.status(200).json({ 

@@ -25,4 +25,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   ghanaCardBackImage?: Buffer;
+
+  @IsOptional()
+  profilePicture?: Buffer;
 }

@@ -33,6 +33,12 @@ export class PropertyService {
 
       const size = `${cleanedPropertyData.sizeNumber} ${cleanedPropertyData.sizeUnit}`;
       const documents = await this.uploadDocuments(cleanedPropertyData);
+      
+      // Upload property image if provided
+      let propertyImageUrl: string | null = null;
+      if (cleanedPropertyData.propertyImage) {
+        propertyImageUrl = await this.uploadPropertyImage(cleanedPropertyData.propertyImage, `property/${crypto.randomUUID()}.jpg`);
+      }
 
       const { data, error } = await this.supabase.from('properties').insert({
         title: cleanedPropertyData.title,
@@ -55,6 +61,7 @@ export class PropertyService {
         submitted_date: timestamp,
         last_updated: timestamp,
         documents,
+        property_image: propertyImageUrl,
       }).select().single();
 
       if (error) throw error;
@@ -92,6 +99,15 @@ export class PropertyService {
     return urlData.publicUrl;
   }
 
+  async uploadPropertyImage(fileBuffer: Buffer, path: string): Promise<string> {
+    const { data, error } = await this.supabase.storage
+      .from('property_images')
+      .upload(path, fileBuffer, { upsert: true, contentType: 'image/jpeg' });
+    if (error) throw error;
+    const { data: urlData } = this.supabase.storage.from('property_images').getPublicUrl(path);
+    return urlData.publicUrl;
+  }
+
   async getPropertyById(propertyId: string): Promise<PropertyEntity> {
     const timestamp = new Date().toISOString();
     try {
@@ -124,6 +140,12 @@ export class PropertyService {
       const size = updatePropertyDto.sizeNumber && updatePropertyDto.sizeUnit ? `${updatePropertyDto.sizeNumber} ${updatePropertyDto.sizeUnit}` : property.size;
       const documents = await this.uploadDocuments(updatePropertyDto);
 
+      // Upload new property image if provided
+      let propertyImageUrl = property.property_image;
+      if (updatePropertyDto.propertyImage) {
+        propertyImageUrl = await this.uploadPropertyImage(updatePropertyDto.propertyImage, `property/${crypto.randomUUID()}.jpg`);
+      }
+
       const { data, error } = await this.supabase
         .from('properties')
         .update({
@@ -143,6 +165,7 @@ export class PropertyService {
           owner_contact: updatePropertyDto.ownerContact ?? property.owner_contact,
           owner_email: updatePropertyDto.ownerEmail ?? property.owner_email,
           documents: [...property.documents, ...documents],
+          property_image: propertyImageUrl,
           status: 'pending',
           last_updated: timestamp,
         })

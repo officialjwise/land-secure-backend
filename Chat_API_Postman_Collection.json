@@ -1,0 +1,175 @@
+{
+  "info": {
+    "name": "Land Secure - Chat API",
+    "description": "API collection for the chat system where buyers can contact property owners",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    },
+    {
+      "key": "chat_id",
+      "value": "chat-uuid-here",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Create New Chat",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"property_id\": \"property-uuid-here\",\n  \"seller_id\": \"seller-uuid-here\",\n  \"property_title\": \"Beautiful 3-bedroom house in Accra\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chats",
+          "host": ["{{base_url}}"],
+          "path": ["chats"]
+        },
+        "description": "Creates a new chat conversation between a buyer and property owner. Only buyers can initiate chats."
+      },
+      "response": []
+    },
+    {
+      "name": "Get User Chats",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/chats",
+          "host": ["{{base_url}}"],
+          "path": ["chats"]
+        },
+        "description": "Retrieves all chat conversations for the authenticated user (both as buyer and seller)."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Chat with Messages",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/chats/{{chat_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["chats", "{{chat_id}}"]
+        },
+        "description": "Retrieves a specific chat conversation with all its messages. Automatically marks messages as read."
+      },
+      "response": []
+    },
+    {
+      "name": "Send Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Hi! I'm interested in your property. Is it still available?\",\n  \"message_type\": \"text\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chats/{{chat_id}}/messages",
+          "host": ["{{base_url}}"],
+          "path": ["chats", "{{chat_id}}", "messages"]
+        },
+        "description": "Sends a message in an existing chat conversation. Only chat participants can send messages."
+      },
+      "response": []
+    },
+    {
+      "name": "Send Message with Attachment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Here's the document you requested\",\n  \"message_type\": \"document\",\n  \"attachment_url\": \"https://example.com/document.pdf\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chats/{{chat_id}}/messages",
+          "host": ["{{base_url}}"],
+          "path": ["chats", "{{chat_id}}", "messages"]
+        },
+        "description": "Sends a message with an attachment (document, image, or location)."
+      },
+      "response": []
+    },
+    {
+      "name": "Mark Chat as Read",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/chats/{{chat_id}}/read",
+          "host": ["{{base_url}}"],
+          "path": ["chats", "{{chat_id}}", "read"]
+        },
+        "description": "Marks all unread messages in a chat as read. Only affects messages from the other participant."
+      },
+      "response": []
+    },
+    {
+      "name": "Archive Chat",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/chats/{{chat_id}}/archive",
+          "host": ["{{base_url}}"],
+          "path": ["chats", "{{chat_id}}", "archive"]
+        },
+        "description": "Archives a chat conversation. Archived chats cannot receive new messages."
+      },
+      "response": []
+    },
+    {
+      "name": "Block Chat",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/chats/{{chat_id}}/block",
+          "host": ["{{base_url}}"],
+          "path": ["chats", "{{chat_id}}", "block"]
+        },
+        "description": "Blocks a chat conversation. Blocked chats cannot receive new messages and are useful for preventing harassment."
+      },
+      "response": []
+    }
+  ]
+}

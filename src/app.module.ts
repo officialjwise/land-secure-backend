@@ -9,6 +9,7 @@ import { TourModule } from './tour/tour.module';
 import { GisModule } from './gis/gis.module';
 import { NotificationModule } from './notification/notification.module';
 import { VerificationModule } from './verification/verification.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { VerificationModule } from './verification/verification.module';
     GisModule,
     NotificationModule,
     VerificationModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

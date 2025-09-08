@@ -30,6 +30,15 @@ export class UsersService {
     });
   }
 
+  async uploadProfilePicture(fileBuffer: Buffer, path: string): Promise<string> {
+    const { data, error } = await this.supabase.storage
+      .from('user-profiles')
+      .upload(path, fileBuffer, { upsert: true, contentType: 'image/jpeg' });
+    if (error) throw error;
+    const { data: urlData } = this.supabase.storage.from('user-profiles').getPublicUrl(path);
+    return urlData.publicUrl;
+  }
+
   async getAllUsers(filters: { search?: string; role?: string; status?: string }, pagination: { page: number; limit: number }): Promise<{ users: UserEntity[]; total: number; page: number; limit: number; message: string }> {
     const timestamp = new Date().toISOString();
     try {
@@ -238,7 +247,7 @@ export class UsersService {
     }
   }
 
-  async getMyProfile(userId: string): Promise<{ id: string; email: string; firstName: string; lastName: string; phone: string; role: 'buyer' | 'seller' | 'admin'; isActive: boolean }> {
+  async getMyProfile(userId: string): Promise<{ id: string; email: string; firstName: string; lastName: string; phone: string; role: 'buyer' | 'seller' | 'admin'; isActive: boolean; profilePicture?: string }> {
     const timestamp = new Date().toISOString();
     try {
       const user = await this.getUserById(userId);
@@ -251,6 +260,7 @@ export class UsersService {
         phone: user.phone,
         role: user.role,
         isActive: user.is_active,
+        profilePicture: user.profile_picture,
       };
     } catch (error) {
       console.error(`[${timestamp}] Error retrieving profile for ${userId}:`, error);
@@ -265,6 +275,7 @@ export class UsersService {
       lastName?: string; 
       phone?: string; 
       email?: string; 
+      profilePicture?: Buffer;
       selfieImage?: Buffer; 
       ghanaCardFrontImage?: Buffer; 
       ghanaCardBackImage?: Buffer 
@@ -277,6 +288,20 @@ export class UsersService {
       const user = await this.getUserById(userId);
       if (!user) {
         throw new BadRequestException('User not found');
+      }
+
+      // Handle profile picture upload for all users
+      let profilePictureUrl = user.profile_picture;
+      if (updateData.profilePicture) {
+        try {
+          profilePictureUrl = await this.uploadProfilePicture(
+            updateData.profilePicture, 
+            `profile/${userId}/${Date.now()}.jpg`
+          );
+        } catch (uploadError) {
+          console.error(`[${timestamp}] Error uploading profile picture for user ${userId}:`, uploadError);
+          throw new BadRequestException('Failed to upload profile picture');
+        }
       }
   
       // Check if user is trying to update document images
@@ -302,6 +327,7 @@ export class UsersService {
             last_name: lastName,
             phone,
             email,
+            profile_picture: profilePictureUrl,
             updated_at: new Date(),
           })
           .eq('id', userId)
@@ -377,6 +403,7 @@ export class UsersService {
               last_name: updateData.lastName,
               phone: updateData.phone,
               email: updateData.email,
+              profile_picture: profilePictureUrl,
               selfie_image: selfieImageUrl,
               ghana_card_front_image: ghanaCardFrontImageUrl,
               ghana_card_back_image: ghanaCardBackImageUrl,
@@ -411,6 +438,7 @@ export class UsersService {
               last_name: lastName,
               phone,
               email,
+              profile_picture: profilePictureUrl,
               updated_at: new Date(),
             })
             .eq('id', userId)

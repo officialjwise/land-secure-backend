@@ -33,6 +33,7 @@ export class UsersController {
   @Roles('buyer', 'seller', 'admin')
   @UseInterceptors(
     FileFieldsInterceptor([
+      { name: 'profilePicture', maxCount: 1 },
       { name: 'selfieImage', maxCount: 1 },
       { name: 'ghanaCardFrontImage', maxCount: 1 },
       { name: 'ghanaCardBackImage', maxCount: 1 },
@@ -41,6 +42,7 @@ export class UsersController {
   async updateMyProfile(
     @Body() updateProfileDto: UpdateProfileDto,
     @UploadedFiles() files: { 
+      profilePicture?: Express.Multer.File[];
       selfieImage?: Express.Multer.File[]; 
       ghanaCardFrontImage?: Express.Multer.File[]; 
       ghanaCardBackImage?: Express.Multer.File[] 
@@ -52,6 +54,7 @@ export class UsersController {
       
       // Safely extract file buffers with optional chaining
       const fileBuffers = {
+        profilePicture: files?.profilePicture?.[0]?.buffer,
         selfieImage: files?.selfieImage?.[0]?.buffer,
         ghanaCardFrontImage: files?.ghanaCardFrontImage?.[0]?.buffer,
         ghanaCardBackImage: files?.ghanaCardBackImage?.[0]?.buffer,

@@ -27,6 +27,7 @@ export class PropertyEntity {
   last_updated: string;
   deleted_at?: string;
   documents: { name: string; url: string }[];
+  property_image?: string; // Add property image URL field
   transfer_status?: 'pending' | 'verified' | 'rejected'; // New field for transfer state
   transfer_request_date?: string; // When transfer was requested
   transfer_verified_date?: string; // When transfer was verified

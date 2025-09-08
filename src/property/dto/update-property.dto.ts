@@ -73,4 +73,7 @@ export class UpdatePropertyDto {
 
   @IsOptional()
   surveyDocuments?: Buffer;
+
+  @IsOptional()
+  propertyImage?: Buffer;
 }

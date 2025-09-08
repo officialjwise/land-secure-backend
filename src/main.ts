@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -17,6 +18,10 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  
+  // Enable WebSocket support
+  app.useWebSocketAdapter(new IoAdapter(app));
+  
   app.enableCors({
     origin: true,
     credentials: true,
@@ -25,8 +30,9 @@ async function bootstrap() {
 
   await app.init();
 
-  await app.listen(configService.get('PORT') || 3000, () => {
-    console.log(`Server running on port ${configService.get('PORT') || 3000}`);
+  const port = 3001; // Force port 3001
+  await app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
   });
 }
 bootstrap();

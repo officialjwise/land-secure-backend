@@ -14,6 +14,7 @@ export class UserEntity {
     selfie_image?: string;
     ghana_card_front_image?: string;
     ghana_card_back_image?: string;
+    profile_picture?: string;
     reset_token?: string;
     reset_expires_at?: Date;
     is_active: boolean;

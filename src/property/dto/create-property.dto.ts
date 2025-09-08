@@ -81,4 +81,7 @@ export class CreatePropertyDto {
 
   @IsOptional()
   surveyDocuments?: Buffer;
+
+  @IsOptional()
+  propertyImage?: Buffer;
 }
