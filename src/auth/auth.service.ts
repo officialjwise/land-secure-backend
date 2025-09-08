@@ -569,14 +569,14 @@ export class AuthService {
             <p>Hello ${user.first_name},</p>
             <p>You requested to reset your password. Click the button below to proceed:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="http://localhost:3000/auth/reset-password?token=${resetToken}" 
+              <a href="https://land-secure-backend.onrender.com/auth/reset-password?token=${resetToken}" 
                  style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
                 Reset Password
               </a>
             </div>
             <p>Or copy and paste this link in your browser:</p>
             <p style="word-break: break-all; color: #666;">
-              http://localhost:3000/auth/reset-password?token=${resetToken}
+              https://land-secure-backend.onrender.com/auth/reset-password?token=${resetToken}
             </p>
             <p style="color: #666; font-size: 12px;">
               This reset link will expire in 10 minutes.

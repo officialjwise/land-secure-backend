@@ -26,33 +26,59 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function seedAdmin() {
   const timestamp = new Date().toISOString();
   try {
-    const email = 'admin@landsecure.com';
-    const password = await bcrypt.hash('AdminPass123!', 10);
-    const id = randomUUID();
-    const resetToken = randomUUID();
-    const resetExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    const { data, error } = await supabase
+    // First admin
+    const email1 = '';
+    const password1 = await bcrypt.hash('Password123!', 10);
+    const id1 = randomUUID();
+    const resetToken1 = randomUUID();
+    const resetExpiresAt1 = new Date(Date.now() + 10 * 60 * 1000);
+    const { data: data1, error: error1 } = await supabase
       .from('users')
       .insert({
-        id, // Include generated ID
-        email,
-        password,
-        first_name: 'Admin',
-        last_name: 'User',
-        phone: '+233000000000',
+        id: id1,
+        email: email1,
+        password: password1,
+        first_name: 'Fiifi',
+        last_name: 'Yawson',
+        phone: '+233543483284',
         role: 'admin',
         is_active: true,
-        reset_token: resetToken,
-        reset_expires_at: resetExpiresAt,
+        reset_token: resetToken1,
+        reset_expires_at: resetExpiresAt1,
         created_at: new Date(),
         updated_at: new Date(),
       })
       .select()
       .single();
+    if (error1) throw error1;
+    console.log(`[${timestamp}] Seeded admin user ${email1} with ID ${data1.id}`);
 
-    if (error) throw error;
-    console.log(`[${timestamp}] Seeded admin user ${email} with ID ${data.id}`);
+    // Second admin
+    const email2 = 'ghyawson@gmail.com';
+    const password2 = await bcrypt.hash('Password@123', 10);
+    const id2 = randomUUID();
+    const resetToken2 = randomUUID();
+    const resetExpiresAt2 = new Date(Date.now() + 10 * 60 * 1000);
+    const { data: data2, error: error2 } = await supabase
+      .from('users')
+      .insert({
+        id: id2,
+        email: email2,
+        password: password2,
+        first_name: 'Yawson',
+        last_name: 'Fiifi',
+        phone: '+233000000001',
+        role: 'admin',
+        is_active: true,
+        reset_token: resetToken2,
+        reset_expires_at: resetExpiresAt2,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .select()
+      .single();
+    if (error2) throw error2;
+    console.log(`[${timestamp}] Seeded admin user ${email2} with ID ${data2.id}`);
   } catch (error) {
     console.error(`[${timestamp}] Error seeding admin:`, error);
     process.exit(1);
